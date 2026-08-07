@@ -13,10 +13,19 @@ from firebase_admin import credentials, firestore
 # ---------------------------------------------------------------------------
 import os
 import json
+import base64
 
 def init_firebase():
     if not firebase_admin._apps:
-        cred_json = os.environ["FIREBASE_CREDENTIALS_JSON"]
+        # Prefer base64-encoded creds (FIREBASE_CREDENTIALS_B64) — this avoids
+        # the newline-corruption issue that happens when a multi-line JSON
+        # private key is pasted into a single-line env var box on Render.
+        # Falls back to raw FIREBASE_CREDENTIALS_JSON for local/manual use.
+        b64 = os.environ.get("FIREBASE_CREDENTIALS_B64")
+        if b64:
+            cred_json = base64.b64decode(b64).decode("utf-8")
+        else:
+            cred_json = os.environ["FIREBASE_CREDENTIALS_JSON"]
         cred_dict = json.loads(cred_json)
         cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)

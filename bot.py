@@ -353,6 +353,17 @@ async def combined_text_handler(update: Update, context: ContextTypes.DEFAULT_TY
 def main():
     start_keep_alive()  # opens a port so Render's Web Service health check passes
 
+    # Explicitly create and set an event loop for this thread before PTB
+    # touches asyncio. Newer Python versions (3.14+) removed the automatic
+    # "create one if missing" behaviour that asyncio.get_event_loop() used
+    # to provide, which otherwise crashes python-telegram-bot's polling
+    # startup with "There is no current event loop in thread 'MainThread'".
+    import asyncio
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
